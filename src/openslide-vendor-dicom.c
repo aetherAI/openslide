@@ -39,6 +39,7 @@
 #include "openslide-decode-dicom.h"
 #include "openslide-decode-jpeg.h"
 #include "openslide-decode-jp2k.h"
+#include "openslide-decode-jpegxl.h"
 #include "openslide-hash.h"
 
 #include <glib.h>
@@ -50,6 +51,7 @@ enum image_format {
   FORMAT_JPEG,
   FORMAT_JPEG2000,
   FORMAT_RGB,
+  FORMAT_JPEGXL,
 };
 
 struct dicom_file {
@@ -195,6 +197,8 @@ static struct syntax_format supported_syntax_formats[] = {
   // we separate RGB and YCbCr with other tags
   { "1.2.840.10008.1.2.4.90", FORMAT_JPEG2000 },
   { "1.2.840.10008.1.2.4.91", FORMAT_JPEG2000 },
+
+  { "1.2.840.10008.1.2.4.110", FORMAT_JPEGXL },
 };
 
 static void dicom_file_destroy(struct dicom_file *f) {
@@ -450,8 +454,14 @@ static bool decode_frame(struct dicom_file *file,
       return false;
     }
     rgb_to_cairo(frame_value, dest, w, h);
+    return true;
+  case FORMAT_JPEGXL:
+    return _openslide_jpegxl_decode_buffer(dest, w, h,
+                                           frame_value, frame_length,
+                                           OPENSLIDE_JPEGXL_SRGB,
+                                           err);
   }
-  return true;
+  g_assert_not_reached();
 }
 
 static struct dicom_file *get_file_for_tile(struct dicom_level *l,
@@ -966,6 +976,9 @@ static bool maybe_add_file(openslide_t *osr,
             g_str_equal(photometric, "RGB");
     break;
   case FORMAT_RGB:
+    found = g_str_equal(photometric, "RGB");
+    break;
+  case FORMAT_JPEGXL:
     found = g_str_equal(photometric, "RGB");
     break;
   }

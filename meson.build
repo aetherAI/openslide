@@ -114,6 +114,9 @@ dicom_dep      = dependency(
   fallback : ['libdicom', 'libdicom_dep'],
   version : '>=1.0.0',
 )
+# JPEG XL (needed for DICOM JPEG XL frames)
+jxl_dep        = dependency('libjxl')
+jxl_threads_dep = dependency('libjxl_threads')
 valgrind_dep   = dependency('valgrind', required : false)
 
 doxygen = find_program(
