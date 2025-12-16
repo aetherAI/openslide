@@ -27,14 +27,9 @@
 
 /* JPEG XL support */
 
-enum _openslide_jpegxl_colorspace {
-  OPENSLIDE_JPEGXL_SRGB,
-};
-
 bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
                                      int32_t w, int32_t h,
                                      const void *data, int32_t datalen,
-                                     enum _openslide_jpegxl_colorspace space,
                                      GError **err);
 
 #endif

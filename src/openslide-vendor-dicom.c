@@ -458,7 +458,6 @@ static bool decode_frame(struct dicom_file *file,
   case FORMAT_JPEGXL:
     return _openslide_jpegxl_decode_buffer(dest, w, h,
                                            frame_value, frame_length,
-                                           OPENSLIDE_JPEGXL_SRGB,
                                            err);
   }
   g_assert_not_reached();
@@ -979,7 +978,7 @@ static bool maybe_add_file(openslide_t *osr,
     found = g_str_equal(photometric, "RGB");
     break;
   case FORMAT_JPEGXL:
-    found = g_str_equal(photometric, "RGB");
+    found = g_str_equal(photometric, "RGB"); // JPEG XL only supports RGB here, XYB 
     break;
   }
   if (!found) {

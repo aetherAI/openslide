@@ -46,15 +46,10 @@ static bool set_jxl_error(GError **err, const char *msg) {
 bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
                                      int32_t w, int32_t h,
                                      const void *data, int32_t datalen,
-                                     enum _openslide_jpegxl_colorspace space,
                                      GError **err) {
   g_assert(dest != NULL);
   g_assert(data != NULL);
   g_assert(datalen >= 0);
-
-  if (space != OPENSLIDE_JPEGXL_SRGB) {
-    return set_jxl_error(err, "Unsupported JPEG XL colorspace");
-  }
 
   g_autoptr(JxlDecoder) dec = JxlDecoderCreate(NULL);
   if (!dec) {
