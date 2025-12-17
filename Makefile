@@ -15,4 +15,3 @@ run: build
 		-e USER_ID=$(shell id -u) \
 		-e USER_GROUP=$(shell id -g) \
 		$(IMAGE_NAME)
-	chown -R $(shell id -u):$(shell id -g) .
