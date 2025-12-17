@@ -198,7 +198,12 @@ static struct syntax_format supported_syntax_formats[] = {
   { "1.2.840.10008.1.2.4.90", FORMAT_JPEG2000 },
   { "1.2.840.10008.1.2.4.91", FORMAT_JPEG2000 },
 
+  // JPEG XL Lossless
   { "1.2.840.10008.1.2.4.110", FORMAT_JPEGXL },
+  // JPEG XL JPEG Recompression
+  { "1.2.840.10008.1.2.4.111", FORMAT_JPEGXL },
+  // JPEG XL
+  { "1.2.840.10008.1.2.4.112", FORMAT_JPEGXL },
 };
 
 static void dicom_file_destroy(struct dicom_file *f) {
