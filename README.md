@@ -88,7 +88,7 @@ meson compile -C builddir
 meson install -C builddir
 ```
 
-## Creating tests
+## Testing
 
 Right now there are 2 allowed URLs for fetching test data:
 - https://openslide.cs.cmu.edu/download/openslide-testdata/
@@ -100,7 +100,12 @@ All other URLs are considered invalid.
 
 To create tests, make sure your file exists in either one of these two locations, and do
 ```bash
-OPENSLIDE_TESTDATA_URL={URL} ./builddir/test/driver create {FORMAT}/{FILENAME}
+OPENSLIDE_TESTDATA_URL={URL} ./builddir/test/driver create {FORMAT}/{FILENAME} {TEST_NAME}
+```
+
+To run existing tests, you will also need to provide `OPENSLIDE_TESTDATA_URL` if you haven't run the test before, i.e. the test data does not exist in the local cache yet:
+```bash
+OPENSLIDE_TESTDATA_URL={URL} ./builddir/test/driver run {TEST_NAME}
 ```
 
 ## Acknowledgements

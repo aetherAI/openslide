@@ -49,7 +49,6 @@ openslide_sources = [
   'openslide-decode-gdkpixbuf.c',
   'openslide-decode-jp2k.c',
   'openslide-decode-jpeg.c',
-  # JPEG XL decoder is included conditionally with DICOM support
   'openslide-decode-png.c',
   'openslide-decode-sqlite.c',
   'openslide-decode-tiff.c',
@@ -76,31 +75,9 @@ openslide_sources = [
 if dicom_dep.found()
   openslide_sources += [
     'openslide-decode-dicom.c',
+    # JPEG XL decoder is included conditionally with DICOM support
     'openslide-decode-jpegxl.c',
     'openslide-vendor-dicom.c',
-  ]
-endif
-
-openslide_deps = [
-  glib_dep,
-  gio_dep,
-  gobject_dep,
-  gdk_pixbuf_dep,
-  cairo_dep,
-  dicom_dep,
-  sqlite_dep,
-  xml_dep,
-  tiff_dep,
-  openjpeg_dep,
-  jpeg_dep,
-  png_dep,
-  zlib_dep,
-  libm_dep,
-]
-if dicom_dep.found()
-  openslide_deps += [
-    jxl_dep,
-    jxl_threads_dep,
   ]
 endif
 libopenslide = library('openslide',
@@ -109,7 +86,24 @@ libopenslide = library('openslide',
   c_args : ['-D_OPENSLIDE_BUILDING_DLL', '-DG_LOG_DOMAIN="OpenSlide"'],
   gnu_symbol_visibility : visibility,
   include_directories : config_h_include,
-  dependencies : openslide_deps,
+  dependencies : [
+    glib_dep,
+    gio_dep,
+    gobject_dep,
+    gdk_pixbuf_dep,
+    cairo_dep,
+    dicom_dep,
+    jxl_dep,
+    jxl_threads_dep,
+    sqlite_dep,
+    xml_dep,
+    tiff_dep,
+    openjpeg_dep,
+    jpeg_dep,
+    png_dep,
+    zlib_dep,
+    libm_dep,
+  ],
   install : true,
 )
 openslide_dep = declare_dependency(
