@@ -283,49 +283,40 @@ def _fetch_one(slide):
         raise ValueError(f'{slide} not in {SLIDELIST}')
 
     filename = os.path.basename(slide)
+    url = urljoin(TESTDATA_URL, slide)
     is_zip = os.path.splitext(filename)[1] == '.zip'
 
     os.makedirs(destpath)
-    downloadable_urls = {
-        'https://openslide.cs.cmu.edu/download/openslide-testdata/',
-        'http://file.aetherai.local/test_data/openslide-testdata/'
-    }
-    match TESTDATA_URL:
-        case x if x in downloadable_urls:
-            url = urljoin(TESTDATA_URL, slide)
-            try:
-                if is_zip:
-                    dest = TemporaryFile(dir=destpath)
+    try:
+        if is_zip:
+            dest = TemporaryFile(dir=destpath)
+        else:
+            dest = open(os.path.join(destpath, filename), 'wb')
+
+        with dest:
+            for retries_remaining in range(4, -1, -1):
+                try:
+                    digest = _download(url, slide, dest)
+                except ConnectionInterrupted:
+                    if retries_remaining == 0:
+                        raise
+                    else:
+                        print('Retrying...')
+                        dest.seek(0)
+                        dest.truncate()
                 else:
-                    dest = open(os.path.join(destpath, filename), 'wb')
+                    break
 
-                with dest:
-                    for retries_remaining in range(4, -1, -1):
-                        try:
-                            digest = _download(url, slide, dest)
-                        except ConnectionInterrupted:
-                            if retries_remaining == 0:
-                                raise
-                            else:
-                                print('Retrying...')
-                                dest.seek(0)
-                                dest.truncate()
-                        else:
-                            break
+            if digest != slides[slide]:
+                raise ValueError(f'Hash mismatch: {slide}')
 
-                    if digest != slides[slide]:
-                        raise ValueError(f'Hash mismatch: {slide}')
-
-                    if is_zip:
-                        print(f'Unpacking {slide}...')
-                        with closing(ZipFile(dest)) as zf:
-                            zf.extractall(path=destpath)
-            except:
-                rmtree(destpath, ignore_errors=True)
-                raise
-        case _:
-            raise ValueError(f'Unsupported OPENSLIDE_TESTDATA_URL: {TESTDATA_URL}')
-
+            if is_zip:
+                print(f'Unpacking {slide}...')
+                with closing(ZipFile(dest)) as zf:
+                    zf.extractall(path=destpath)
+    except:
+        rmtree(destpath, ignore_errors=True)
+        raise
 
 @_command
 def create(slide, testname):
