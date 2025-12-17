@@ -978,7 +978,7 @@ static bool maybe_add_file(openslide_t *osr,
     found = g_str_equal(photometric, "RGB");
     break;
   case FORMAT_JPEGXL:
-    found = g_str_equal(photometric, "RGB"); // JPEG XL only supports RGB here, XYB 
+    found = g_str_equal(photometric, "RGB"); // JPEG XL only supports RGB here, XYB not yet supported
     break;
   }
   if (!found) {
