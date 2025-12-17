@@ -318,6 +318,7 @@ def _fetch_one(slide):
         rmtree(destpath, ignore_errors=True)
         raise
 
+
 @_command
 def create(slide, testname):
     '''Create a new test case with the specified name and base slide (e.g.
