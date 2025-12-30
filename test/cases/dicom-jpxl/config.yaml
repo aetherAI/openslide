@@ -1,0 +1,5 @@
+base: DICOM/jpxl.zip  # This only exists in http://file.aetherai.local/test_data/openslide-testdata/
+slide: jpxl/0.dcm
+success: true
+vendor: dicom
+primary: true

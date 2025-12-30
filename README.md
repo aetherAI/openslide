@@ -60,6 +60,10 @@ more details.
 
 ## Compiling
 
+You can compile everything by just running `make`.
+
+### Manual
+
 To build OpenSlide, you will need:
 
 - Meson
@@ -67,6 +71,7 @@ To build OpenSlide, you will need:
 - GDK-PixBuf
 - glib ≥ 2.56
 - libdicom ≥ 1.0 (automatically built if missing)
+- libjxl
 - libjpeg
 - libpng
 - libtiff ≥ 4.0
@@ -83,6 +88,25 @@ meson compile -C builddir
 meson install -C builddir
 ```
 
+## Testing
+
+Right now there are 2 allowed URLs for fetching test data:
+- https://openslide.cs.cmu.edu/download/openslide-testdata/
+  - The official test data repository. If no `OPENSLIDE_TESTDATA_URL` is provided, this is the default.
+- http://file.aetherai.local/test_data/openslide-testdata/
+  - Contains test data for aetherAI related functionalities, e.g. JPEGXL encoded DICOMS.
+
+All other URLs are considered invalid.
+
+To create tests, make sure your file exists in either one of these two locations, and do
+```bash
+OPENSLIDE_TESTDATA_URL={URL} ./builddir/test/driver create {FORMAT}/{FILENAME} {TEST_NAME}
+```
+
+To run existing tests, you will also need to provide `OPENSLIDE_TESTDATA_URL` if you haven't run the test before, i.e. the test data does not exist in the local cache yet:
+```bash
+OPENSLIDE_TESTDATA_URL={URL} ./builddir/test/driver run {TEST_NAME}
+```
 
 ## Acknowledgements
 

@@ -1,26 +1,33 @@
-# Start from the same base you use
-FROM quay.io/pypa/manylinux_2_28_x86_64
+FROM debian:bullseye-slim
 
 # Install system dependencies for building openslide and libdicom
-RUN yum install -y \
+RUN apt update \
+    && apt install -y --no-install-recommends \
         meson \
+        cmake \
+        ninja-build \
+        pkg-config \
+        git \
         gcc \
-        gcc-c++ \
+        g++ \
         make \
-        libpng-devel \
-        libjpeg-devel \
-        libtiff-devel \
-        openjpeg2-devel \
-        gdk-pixbuf2-devel \
-        libxml2-devel \
-        sqlite-devel \
-        cairo-devel \
-        libzstd-devel \
-    && yum clean all \
-    && rm -rf /var/cache/yum
+        curl \
+        wget \
+        ca-certificates \
+        libbrotli-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libtiff-dev \
+        libopenjp2-7-dev \
+        libsqlite3-dev \
+        libgdk-pixbuf2.0-dev \
+        libxml2-dev \
+        libcairo2-dev \
+        libzstd-dev \
+    && rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
 
 # Default working directory
-WORKDIR /openslide-pybind11
+WORKDIR /openslide
 
 # Default command
 CMD ["./compile.sh"]

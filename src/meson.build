@@ -75,6 +75,8 @@ openslide_sources = [
 if dicom_dep.found()
   openslide_sources += [
     'openslide-decode-dicom.c',
+    # JPEG XL decoder is included conditionally with DICOM support
+    'openslide-decode-jpegxl.c',
     'openslide-vendor-dicom.c',
   ]
 endif
@@ -91,6 +93,8 @@ libopenslide = library('openslide',
     gdk_pixbuf_dep,
     cairo_dep,
     dicom_dep,
+    jxl_dep,
+    jxl_threads_dep,
     sqlite_dep,
     xml_dep,
     tiff_dep,

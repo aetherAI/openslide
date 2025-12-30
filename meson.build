@@ -8,7 +8,7 @@ project(
     'warning_level=2',
   ],
   # limited by Ubuntu 20.04
-  meson_version : '>=0.53',
+  meson_version : '>=0.55',
 )
 # Shared library version.  Follow SemVer rules.
 soversion = '1.0.0'
@@ -114,6 +114,9 @@ dicom_dep      = dependency(
   fallback : ['libdicom', 'libdicom_dep'],
   version : '>=1.0.0',
 )
+# JPEG XL (needed for DICOM JPEG XL frames)
+jxl_dep        = dependency('libjxl', fallback : ['libjxl', 'libjxl_dep'])
+jxl_threads_dep = dependency('libjxl_threads', fallback : ['libjxl', 'libjxl_threads_dep'])
 valgrind_dep   = dependency('valgrind', required : false)
 
 doxygen = find_program(

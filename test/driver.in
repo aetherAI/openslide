@@ -163,7 +163,7 @@ def _launch_test(test, slidefile, valgrind=False, extra_checks=True,
         OPENSLIDE_DEBUG=','.join(debug),
         GIO_USE_VFS='local',
         LSAN_OPTIONS=f'suppressions={CLANG_LSAN_SUPPRESSIONS},print_suppressions=0',
-        UBSAN_OPTIONS=f'print_stacktrace=1',
+        UBSAN_OPTIONS='print_stacktrace=1',
     )
     if extra_checks:
         env.update(
