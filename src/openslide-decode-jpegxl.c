@@ -154,7 +154,6 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
 
   if (JxlDecoderSubscribeEvents(dec,
                                JXL_DEC_BASIC_INFO |
-                               JXL_DEC_JPEG_RECONSTRUCTION |
                                JXL_DEC_FULL_IMAGE) != JXL_DEC_SUCCESS) {
     return set_jxl_error(err, "JxlDecoderSubscribeEvents() failed");
   }
@@ -242,11 +241,6 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
           JXL_DEC_SUCCESS) {
         return set_jxl_error(err, "JxlDecoderSetImageOutBuffer() failed");
       }
-      break;
-    case JXL_DEC_JPEG_RECONSTRUCTION:
-      // If the bitstream originated from JPEG lossless transcode, libjxl can
-      // emit JPEG reconstruction data. We intentionally ignore it and request
-      // pixels via the image out buffer.
       break;
     case JXL_DEC_FULL_IMAGE:
       if (!pixels) {
