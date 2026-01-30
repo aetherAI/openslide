@@ -24,6 +24,7 @@
 
 #include "openslide-private.h"
 #include "openslide-decode-jpegxl.h"
+#include "openslide-decode-jpeg.h"
 
 #include <string.h>
 
@@ -114,10 +115,10 @@ static const char *guess_payload_hint(const uint8_t *data, size_t datalen) {
   return "unrecognized payload prefix";
 }
 
-bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
-                                     int32_t w, int32_t h,
-                                     const void *data, int32_t datalen,
-                                     GError **err) {
+static bool jpegxl_decode(uint32_t *dest,
+                          int32_t w, int32_t h,
+                          const void *data, int32_t datalen,
+                          GError **err) {
   g_assert(dest != NULL);
   g_assert(data != NULL);
   g_assert(datalen >= 0);
@@ -152,8 +153,13 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
     return set_jxl_error(err, "JxlDecoderSetParallelRunner() failed");
   }
 
+  // Subscribe to JPEG reconstruction to get pixel-perfect results for
+  // losslessly transcoded JPEGs. If the JXL wasn't transcoded from JPEG,
+  // JXL_DEC_JPEG_RECONSTRUCTION won't fire and we'll fall through to
+  // normal pixel decoding.
   if (JxlDecoderSubscribeEvents(dec,
                                JXL_DEC_BASIC_INFO |
+                               JXL_DEC_JPEG_RECONSTRUCTION |
                                JXL_DEC_FULL_IMAGE) != JXL_DEC_SUCCESS) {
     return set_jxl_error(err, "JxlDecoderSubscribeEvents() failed");
   }
@@ -162,8 +168,6 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
       JXL_DEC_SUCCESS) {
     return set_jxl_error(err, "JxlDecoderSetInput() failed");
   }
-  // Keep the input open (imagecodecs does this) even though we have the full
-  // buffer; both modes work, but keeping it open matches upstream logic.
 
   bool have_basic_info = false;
   JxlBasicInfo info;
@@ -180,6 +184,12 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
 
   g_autofree uint8_t *pixels = NULL;
   size_t pixels_size = 0;
+
+  // For JPEG reconstruction
+  g_autofree uint8_t *jpeg_buf = NULL;
+  size_t jpeg_buf_size = 0;
+  size_t jpeg_written = 0;
+  bool jpeg_reconstruction_active = false;
 
   for (;;) {
     JxlDecoderStatus status = JxlDecoderProcessInput(dec);
@@ -224,25 +234,72 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
       }
       format.num_channels = samples;
       break;
+
+    case JXL_DEC_JPEG_RECONSTRUCTION:
+      // The JXL contains a losslessly transcoded JPEG. Reconstruct it.
+      // Start with a reasonable buffer size (original JPEG can't be larger
+      // than the JXL container in typical cases, but add some headroom).
+      jpeg_buf_size = (size_t) datalen * 2;
+      if (jpeg_buf_size < 65536) {
+        jpeg_buf_size = 65536;
+      }
+      jpeg_buf = g_malloc(jpeg_buf_size);
+      if (JxlDecoderSetJPEGBuffer(dec, jpeg_buf, jpeg_buf_size) !=
+          JXL_DEC_SUCCESS) {
+        return set_jxl_error(err, "JxlDecoderSetJPEGBuffer() failed");
+      }
+      jpeg_reconstruction_active = true;
+      break;
+
+    case JXL_DEC_JPEG_NEED_MORE_OUTPUT: {
+      // Need a larger buffer for JPEG reconstruction
+      size_t remaining = JxlDecoderReleaseJPEGBuffer(dec);
+      jpeg_written = jpeg_buf_size - remaining;
+      size_t new_size = jpeg_buf_size * 2;
+      jpeg_buf = g_realloc(jpeg_buf, new_size);
+      jpeg_buf_size = new_size;
+      if (JxlDecoderSetJPEGBuffer(dec, jpeg_buf + jpeg_written,
+                                  jpeg_buf_size - jpeg_written) !=
+          JXL_DEC_SUCCESS) {
+        return set_jxl_error(err, "JxlDecoderSetJPEGBuffer() failed after resize");
+      }
+      break;
+    }
+
     case JXL_DEC_NEED_IMAGE_OUT_BUFFER:
       if (!have_basic_info) {
         return set_jxl_error(err, "JPEG XL decoder requested output buffer before BASIC_INFO");
       }
-      if (JxlDecoderImageOutBufferSize(dec, &format, &pixels_size) !=
-          JXL_DEC_SUCCESS) {
-        return set_jxl_error(err, "JxlDecoderImageOutBufferSize() failed");
-      }
-      // Sanity-check buffer size when decoding to 8-bit interleaved pixels.
-      if (pixels_size != (size_t) w * (size_t) h * (size_t) format.num_channels) {
-        return set_jxl_error(err, "Unexpected JPEG XL output buffer size");
-      }
-      pixels = g_malloc(pixels_size);
-      if (JxlDecoderSetImageOutBuffer(dec, &format, pixels, pixels_size) !=
-          JXL_DEC_SUCCESS) {
-        return set_jxl_error(err, "JxlDecoderSetImageOutBuffer() failed");
+      // Only set up pixel output if we're not doing JPEG reconstruction
+      if (!jpeg_reconstruction_active) {
+        if (JxlDecoderImageOutBufferSize(dec, &format, &pixels_size) !=
+            JXL_DEC_SUCCESS) {
+          return set_jxl_error(err, "JxlDecoderImageOutBufferSize() failed");
+        }
+        // Sanity-check buffer size when decoding to 8-bit interleaved pixels.
+        if (pixels_size != (size_t) w * (size_t) h * (size_t) format.num_channels) {
+          return set_jxl_error(err, "Unexpected JPEG XL output buffer size");
+        }
+        pixels = g_malloc(pixels_size);
+        if (JxlDecoderSetImageOutBuffer(dec, &format, pixels, pixels_size) !=
+            JXL_DEC_SUCCESS) {
+          return set_jxl_error(err, "JxlDecoderSetImageOutBuffer() failed");
+        }
       }
       break;
+
     case JXL_DEC_FULL_IMAGE:
+      if (jpeg_reconstruction_active) {
+        // Finalize JPEG reconstruction
+        size_t remaining = JxlDecoderReleaseJPEGBuffer(dec);
+        jpeg_written = jpeg_buf_size - remaining;
+
+        // Decode the reconstructed JPEG with libjpeg for pixel-perfect results
+        return _openslide_jpeg_decode_buffer(jpeg_buf, (uint32_t) jpeg_written,
+                                             dest, w, h, err);
+      }
+
+      // Normal pixel decoding path
       if (!pixels) {
         return set_jxl_error(err, "JPEG XL decode succeeded without output buffer");
       }
@@ -260,6 +317,7 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
         }
       }
       return true;
+
     case JXL_DEC_SUCCESS:
       // End of codestream. If we haven't seen a full image, treat as error.
       return set_jxl_error(err, "JPEG XL decode finished without image");
@@ -267,4 +325,11 @@ bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
       return set_jxl_error(err, "Unexpected JPEG XL decoder status");
     }
   }
+}
+
+bool _openslide_jpegxl_decode_buffer(uint32_t *dest,
+                                     int32_t w, int32_t h,
+                                     const void *data, int32_t datalen,
+                                     GError **err) {
+  return jpegxl_decode(dest, w, h, data, datalen, err);
 }
