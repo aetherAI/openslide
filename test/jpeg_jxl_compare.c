@@ -41,6 +41,7 @@
 #include <glib.h>
 
 #include <openslide.h>
+#include "openslide-private.h"
 #include "openslide-decode-jpegxl.h"
 #include "openslide-decode-jpeg.h"
 
