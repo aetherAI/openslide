@@ -39,6 +39,14 @@ executable(
   c_args : ['-Wno-deprecated-declarations'],
 )
 
+# Tests that require internal symbols (only built with -D_export_internal_symbols=true)
+if get_option('_export_internal_symbols')
+  executable(
+    'jpeg_jxl_compare', 'jpeg_jxl_compare.c',
+    dependencies : [test_deps, cairo_dep],
+  )
+endif
+
 # Tests
 test('synth', test_synth)
 

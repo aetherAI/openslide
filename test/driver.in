@@ -1226,6 +1226,18 @@ def exports():
 
 
 @_command
+def jpeg_jxl_compare(jpeg_path):
+    '''Compare JPEG and JPEG XL (losslessly transcoded) pixel output.
+    Requires cjxl in PATH. Uses internal OpenSlide decode functions
+    to verify that JPEG XL transcoding produces identical pixels.'''
+    with _rebuild(['-D_export_internal_symbols=true']):
+        result = subprocess.run(
+            [os.path.join('.', 'test', 'jpeg_jxl_compare'), jpeg_path]
+        )
+        sys.exit(result.returncode)
+
+
+@_command
 def clean(pattern='*'):
     '''Delete temporary slide data for tests matching the specified
     pattern.  If pattern is `frozen` or omitted, also delete unfrozen
