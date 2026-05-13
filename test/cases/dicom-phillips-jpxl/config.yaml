@@ -1,0 +1,5 @@
+base: DICOM/phillips-jpxl.zip # This only exists in http://file.aetherai.local/test_data/openslide-testdata/
+slide: phillips-jpxl/VLw.1.3.46.670589.65.1.64716080259.20251215090922.2.1.dcm
+success: true
+vendor: dicom
+primary: true
