@@ -928,10 +928,24 @@ static bool maybe_add_file(openslide_t *osr,
   }
 
   // check the other image format tags
-  if (!verify_tag_int(f->metadata, BitsAllocated, 8, true, err) ||
-      !verify_tag_int(f->metadata, BitsStored, 8, true, err) ||
-      !verify_tag_int(f->metadata, HighBit, 7, true, err) ||
-      !verify_tag_int(f->metadata, SamplesPerPixel, 3, true, err) ||
+  int64_t bits_allocated, bits_stored, high_bit;
+  if (!get_tag_int(f->metadata, BitsAllocated, &bits_allocated) ||
+      !get_tag_int(f->metadata, BitsStored, &bits_stored) ||
+      !get_tag_int(f->metadata, HighBit, &high_bit)) {
+    g_set_error(err, OPENSLIDE_ERROR, OPENSLIDE_ERROR_FAILED,
+                "Unsupported image format");
+    return false;
+  }
+  if (bits_allocated % 8 != 0 ||
+      bits_stored > bits_allocated ||
+      high_bit >= bits_allocated) {
+    g_set_error(err, OPENSLIDE_ERROR, OPENSLIDE_ERROR_FAILED,
+                "Unsupported image format: BitsAllocated=%"PRId64
+                " BitsStored=%"PRId64" HighBit=%"PRId64,
+                bits_allocated, bits_stored, high_bit);
+    return false;
+  }
+  if (!verify_tag_int(f->metadata, SamplesPerPixel, 3, true, err) ||
       !verify_tag_int(f->metadata, PixelRepresentation, 0, true, err) ||
       !verify_tag_int(f->metadata, TotalPixelMatrixFocalPlanes, 1, false, err)) {
     g_set_error(err, OPENSLIDE_ERROR, OPENSLIDE_ERROR_FAILED,
@@ -984,7 +998,9 @@ static bool maybe_add_file(openslide_t *osr,
     found = g_str_equal(photometric, "RGB");
     break;
   case FORMAT_JPEGXL:
-    found = g_str_equal(photometric, "RGB"); // JPEG XL only supports RGB here, XYB not yet supported
+    // JPEG XL uses XYB internally; libjxl converts to RGB automatically
+    found = g_str_equal(photometric, "RGB") ||
+            g_str_equal(photometric, "XYB");
     break;
   }
   if (!found) {

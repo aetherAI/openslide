@@ -112,7 +112,7 @@ dicom_dep      = dependency(
   # avoid 'check' dependency
   default_options : ['tests=false'],
   fallback : ['libdicom', 'libdicom_dep'],
-  version : '>=1.0.0',
+  version : '>=1.2.1',
 )
 # JPEG XL (needed for DICOM JPEG XL frames)
 jxl_dep        = dependency('libjxl', fallback : ['libjxl', 'libjxl_dep'])
